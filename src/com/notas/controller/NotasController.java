@@ -42,7 +42,8 @@ public class NotasController {
                     case 2 -> verBase();
                     case 3 -> verSalida();
                     case 4 -> descargarSalida();
-                    case 5 -> activo = false;
+                    case 5 -> limpiarSalida();
+                    case 6 -> activo = false;
                     default -> view.mensaje("Opcion invalida.");
                 }
             } catch (IOException e) {
@@ -78,5 +79,15 @@ public class NotasController {
         }
         generador.exportar(SALIDA_PATH, ultimoRanking);
         view.mensaje("Archivo exportado en " + SALIDA_PATH.toAbsolutePath());
+    }
+
+    // Borra promedios.csv (si existe) y descarta el ranking en memoria,
+    // para forzar un recalculo limpio antes de volver a exportar.
+    private void limpiarSalida() throws IOException {
+        boolean existia = Files.deleteIfExists(SALIDA_PATH);
+        ultimoRanking = List.of();
+        view.mensaje(existia
+            ? "Salida eliminada. Vuelva a generarla con la opcion 3."
+            : "No habia ninguna salida generada.");
     }
 }

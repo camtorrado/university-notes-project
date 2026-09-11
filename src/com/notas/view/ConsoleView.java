@@ -21,7 +21,8 @@ public class ConsoleView {
             [2] Importar/Ver Base
             [3] Importar/Ver Salida
             [4] Descargar Salida
-            [5] Salir
+            [5] Limpiar Salida
+            [6] Salir
             """);
         System.out.print("Seleccione una opcion: ");
     }
