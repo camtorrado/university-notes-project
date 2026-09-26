@@ -1,4 +1,5 @@
 package com.notas.model;
 
-public record NotaCurso(String alumnoId, String curso, double nota, int creditos) {
+// Los creditos no se guardan aqui, se resuelven contra Curso por cursoId (un solo lugar de verdad).
+public record NotaCurso(String alumnoId, String cursoId, double nota) {
 }

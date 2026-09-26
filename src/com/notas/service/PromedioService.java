@@ -1,9 +1,12 @@
 package com.notas.service;
 
 import com.notas.model.Alumno;
+import com.notas.model.Curso;
 import com.notas.model.NotaCurso;
 import com.notas.model.PromedioAlumno;
+import com.notas.model.ResultadoCarga;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,26 +18,46 @@ public class PromedioService {
     // Nota minima (escala 0.0 - 5.0) para figurar en el cuadro de honor.
     public static final double UMBRAL_HONOR = 4.5;
 
-    // Cruza cada nota con el alumno por ID y acumula el promedio ponderado por creditos.
-    public List<PromedioAlumno> calcularRanking(Map<String, Alumno> alumnos, List<NotaCurso> notas) {
+    // Nota minima (escala 0.0 - 5.0) para aplicar a beca.
+    public static final double UMBRAL_BECA = 4.0;
+
+    // Cruza notas con alumnos y cursos por ID. Una referencia rota no detiene el calculo,
+    // solo queda como advertencia.
+    public ResultadoCarga<PromedioAlumno> calcularRanking(
+            Map<String, Alumno> alumnos, Map<String, Curso> cursos, List<NotaCurso> notas) {
         Map<String, PromedioAlumno> acumulado = new LinkedHashMap<>();
+        List<String> advertencias = new ArrayList<>();
 
         for (NotaCurso nota : notas) {
             Alumno alumno = alumnos.get(nota.alumnoId());
-            if (alumno == null) continue; // nota referencia un alumno que no esta en el catalogo
+            if (alumno == null) {
+                advertencias.add("Nota con alumno inexistente: " + nota.alumnoId() + " (curso " + nota.cursoId() + ")");
+                continue;
+            }
+            Curso curso = cursos.get(nota.cursoId());
+            if (curso == null) {
+                advertencias.add("Nota con curso inexistente: " + nota.cursoId() + " (alumno " + nota.alumnoId() + ")");
+                continue;
+            }
 
             PromedioAlumno promedio = acumulado.computeIfAbsent(
                 alumno.id(), id -> new PromedioAlumno(alumno.id(), alumno.nombreCompleto())
             );
-            promedio.agregarNota(nota.nota(), nota.creditos());
+            promedio.agregarNota(nota.nota(), curso.creditos());
         }
 
-        return acumulado.values().stream()
+        List<PromedioAlumno> ranking = acumulado.values().stream()
             .sorted(Comparator.comparingDouble(PromedioAlumno::getPromedio).reversed())
             .collect(Collectors.toList());
+
+        return new ResultadoCarga<>(ranking, advertencias);
     }
 
     public boolean esCuadroDeHonor(PromedioAlumno promedio) {
         return promedio.getPromedio() >= UMBRAL_HONOR;
+    }
+
+    public boolean aplicaBeca(PromedioAlumno promedio) {
+        return promedio.getPromedio() >= UMBRAL_BECA;
     }
 }
