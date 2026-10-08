@@ -6,7 +6,6 @@ import com.notas.service.GestionService.ResultadoGeneracion;
 
 import javax.swing.JTextField;
 import javax.swing.SortOrder;
-import java.awt.Color;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
