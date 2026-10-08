@@ -9,11 +9,17 @@ Incluye gestión CRUD de alumnos, cursos y notas desde la consola.
 ```
 src/com/notas/
 ├── model/         Alumno, Curso, NotaCurso, PromedioAlumno, ResultadoCarga<T>
-├── repository/     Lectura y escritura de alumnos.csv, cursos.csv y notas.txt
-├── service/        PromedioService (cruce + promedio ponderado), GeneradorArchivosService (I/O dinamico)
+├── repository/     Lectura y escritura de alumnos.csv, cursos.csv, notas.txt y promedios.csv
+├── service/        GestionService (reglas del CRUD, ficha y salida), PromedioService (promedio, ranking,
+│                   umbrales), GeneradorDatosService (datos de ejemplo, sin I/O)
 ├── view/           ConsoleView (menus y tablas)
-├── controller/      NotasController (orquesta las acciones del menu y el CRUD)
-└── App.java         Punto de entrada
+├── controller/      NotasController (menu de consola, delega las reglas en GestionService)
+├── gui/             Interfaz grafica Swing (VentanaPrincipal + una seccion por pantalla)
+├── App.java         Punto de entrada de consola
+├── AppGUI.java      Punto de entrada de la interfaz grafica
+└── Proyecto.java    Nombre, asignatura e integrantes (compartido por consola y GUI)
+test/com/notas/
+└── Pruebas.java     Pruebas de la logica en Java puro (sin librerias)
 data/                alumnos.csv, cursos.csv, notas.txt, promedios.csv (se crean/actualizan en tiempo de ejecucion)
 ```
 
@@ -29,7 +35,7 @@ problema.
 | alumnos.csv               | `ID;NombreCompleto`             | `A1;Carlos Perez`             |
 | cursos.csv                 | `ID;Nombre;N_creditos;M_horas`  | `C1;Calculo;3_creditos;4_horas` |
 | notas.txt                  | `AlumnoId;CursoId;Nota`         | `A1;C1;4.5`                   |
-| promedios.csv (salida) | `N_Puesto;ID;NombreCompleto;X.X_Prom;SI\|NO_Beca;SI\|NO_Honor;M_HorasSemanales` | `1_Puesto;A1;Carlos Perez;4.6_Prom;SI_Beca;SI_Honor;5_HorasSemanales` |
+| promedios.csv (salida) | `N_Puesto;ID;NombreCompleto;X.XX_Prom;SI\|NO_Beca;SI\|NO_Honor;M_HorasSemanales` | `1_Puesto;A1;Carlos Perez;4.62_Prom;SI_Beca;SI_Honor;5_HorasSemanales` |
 
 Un mismo alumno puede tener varias líneas en `notas.txt` (una por curso cursado).
 Los créditos **solo** viven en `cursos.csv`; el promedio se calcula como
@@ -53,6 +59,19 @@ Aplica para beca cuando su promedio ponderado es `>= 4.0` (constante
 `PromedioService.UMBRAL_BECA`). Esto se ve como columna `Beca` en consola
 (`[3]`) y como `SI_Beca`/`NO_Beca` en `promedios.csv` al exportar (`[4]`).
 
+El promedio oficial se redondea a **2 decimales**, y con ese mismo valor se decide la
+beca, el cuadro de honor y los empates: lo que se ve en pantalla y en `promedios.csv`
+nunca se contradice (un 3.995 se muestra como 4.00 y si aplica a beca).
+
+**Empates:** alumnos con el mismo promedio comparten puesto y el siguiente salta
+(1, 2, 2, 4). Dentro del empate se listan primero quienes cursaron mas creditos y
+luego por nombre. Los alumnos sin ninguna nota no entran al ranking; la consola y la
+GUI indican cuantos son.
+
+**Nota aprobatoria:** 3.0 (`PromedioService.NOTA_APROBATORIA`). Es solo informativa:
+las notas reprobadas se marcan (en rojo en la GUI, con `(reprobada)` en consola) y
+cada alumno muestra cuantas tiene, pero no cambia la beca ni el cuadro de honor.
+
 El ranking exportado en `promedios.csv` incluye ademas: el puesto (`N_Puesto`,
 segun el orden de mayor a menor promedio), si esta en cuadro de honor
 (`SI_Honor`/`NO_Honor`) y la carga horaria semanal del alumno
@@ -70,11 +89,36 @@ horas de un curso actualiza automáticamente la carga de sus alumnos.
 ## Ejecutar en VSCode
 
 1. Abrir la carpeta en VSCode con el Extension Pack for Java instalado.
-2. Presionar F5, o desde terminal:
+2. Elegir "Launch GUI" (interfaz grafica) o "Launch App" (consola) y presionar F5, o desde terminal:
    ```
    javac -d bin $(find src -name "*.java")
-   java -cp bin com.notas.App
+   java -cp bin com.notas.AppGUI   # interfaz grafica
+   java -cp bin com.notas.App      # consola
    ```
+   Ambas versiones leen y escriben los mismos archivos de `data/` y aplican las mismas
+   reglas (viven en `GestionService`), asi que se pueden usar indistintamente.
+
+## Interfaz grafica
+
+Barra lateral con las secciones, contenido al centro y barra de estado abajo
+(mensaje de la ultima accion, advertencias de los archivos y "Recargar archivos").
+
+| Seccion    | Equivale en consola | Que muestra / permite |
+|------------|---------------------|------------------------|
+| Resultados | [3], [4], [5]       | Indicadores (evaluados, promedio del grupo, becas, cuadro de honor), grafico de distribucion de promedios, ranking con busqueda y filtro (beca / cuadro de honor), Exportar CSV, Limpiar salida y "Mostrar en carpeta". Avisa si `promedios.csv` quedo desactualizado frente a los datos. |
+| Alumnos    | [6]                 | Tabla con cursos, reprobadas, horas semanales y promedio; nuevo, editar, eliminar. En "Más ▾": ver ficha, ver notas y generar notas. Doble clic abre la ficha. |
+| Cursos     | [7]                 | Tabla con creditos, horas, inscritos y promedio del curso; nuevo, editar, eliminar. En "Más ▾": ver notas y generar notas. |
+| Notas      | [8]                 | Tabla filtrable por alumno y por curso, con las reprobadas en rojo; nueva, editar y eliminar. |
+| Generar datos de ejemplo | [1]   | Dialogo con la cantidad de alumnos y cursos. |
+| Acerca de  | [9]                 | Proposito, reglas de calculo, archivos e integrantes. |
+
+`[2] Importar/Ver Base` corresponde a las tablas de Alumnos, Cursos y Notas mas el
+contador de advertencias de la barra de estado. Las tablas se ordenan haciendo clic en
+el encabezado; clic derecho sobre una fila muestra todas sus acciones.
+
+Atajos: `Ctrl/Cmd + N` nuevo, `Ctrl/Cmd + F` buscar, `Enter` abrir (ficha o edicion),
+`Supr` eliminar la fila seleccionada. Las acciones destructivas
+piden confirmacion y explican la consecuencia (por ejemplo, cuantas notas se borran).
 
 ## Menú
 
@@ -84,7 +128,7 @@ horas de un curso actualiza automáticamente la carga de sus alumnos.
 [3] Importar/Ver Salida  -> calcula el promedio ponderado y muestra el ranking
 [4] Descargar Salida     -> exporta el ultimo ranking a data/promedios.csv
 [5] Limpiar Salida       -> borra promedios.csv (el ranking se recalcula siempre desde los archivos actuales, no depende de esto)
-[6] Gestionar Alumnos    -> CRUD (agregar, editar, eliminar) + generar notas aleatorias para un alumno
+[6] Gestionar Alumnos    -> CRUD (agregar, editar, eliminar) + generar notas aleatorias + ver ficha del alumno
 [7] Gestionar Cursos     -> CRUD (agregar, editar, eliminar) + generar notas aleatorias para todos los alumnos en un curso
 [8] Gestionar Notas      -> CRUD: agregar, editar, eliminar
 [9] Acerca de            -> integrantes del grupo y proposito del programa
@@ -111,9 +155,14 @@ horas de un curso actualiza automáticamente la carga de sus alumnos.
   referencias huérfanas en `notas.txt`.
 - **No se permiten nombres duplicados**: al agregar o editar un alumno o un
   curso, se rechaza si ya existe otro con el mismo nombre, sin importar
-  mayusculas o minusculas ("Redes" y "redes" cuentan como el mismo nombre).
-- **Eliminar un curso** se bloquea si hay notas que lo referencian; el mensaje
-  indica cuántas, para que primero se eliminen o reasignen.
+  mayusculas, minusculas ni espacios repetidos ("Redes" y " redes " cuentan como
+  el mismo nombre). Los nombres no pueden contener `;` (es el separador de los archivos).
+- **Ficha del alumno**: promedio, puesto, creditos, horas, notas reprobadas,
+  cuanto le falta para beca y cuadro de honor, y el aporte de cada curso
+  (nota x creditos) al promedio.
+- **Eliminar un curso** que tiene notas pide confirmacion explicita indicando
+  cuantas notas se borran con el (en consola: `Eliminar tambien sus notas? (s/n)`;
+  si se responde que no, el curso no se elimina).
 - **Editar un curso** (por ejemplo sus créditos) no reescribe las notas ya
   registradas: el promedio se recalcula siempre contra el valor actual del
   catálogo.
@@ -136,3 +185,19 @@ horas de un curso actualiza automáticamente la carga de sus alumnos.
 - Una nota que referencia un alumno o un curso que no existe en el catálogo
   también se reporta como advertencia (no rompe el cálculo del promedio).
 - Un alumno sin notas registradas tiene promedio 0.0 (no genera división por cero).
+- Si `notas.txt` trae dos notas del mismo alumno en el mismo curso (editado a mano),
+  solo cuenta la primera y la segunda se reporta como advertencia.
+- Los decimales se escriben siempre con punto, aunque el sistema este configurado en
+  español (que usaria coma y romperia la lectura).
+
+## Pruebas
+
+`test/com/notas/Pruebas.java` cubre el calculo (promedio, redondeo, umbrales, empates,
+carga horaria), la lectura de archivos (lineas invalidas, duplicados, idioma es-CO),
+las reglas del CRUD, la salida y el generador. Cada prueba usa una carpeta temporal,
+nunca `data/`. En VSCode: "Run Pruebas"; desde terminal:
+
+```
+javac -d bin $(find src test -name "*.java")
+java -cp bin com.notas.Pruebas
+```

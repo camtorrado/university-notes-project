@@ -3,20 +3,15 @@ package com.notas.service;
 import com.notas.model.Alumno;
 import com.notas.model.Curso;
 import com.notas.model.NotaCurso;
-import com.notas.model.PromedioAlumno;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-public class GeneradorArchivosService {
+public class GeneradorDatosService {
 
     private static final List<String> NOMBRES = List.of(
         "Carlos", "Maria", "Andres", "Laura", "Juan", "Camila", "Diego", "Valentina",
@@ -33,26 +28,30 @@ public class GeneradorArchivosService {
     private static final int[] CREDITOS_POSIBLES = {1, 2, 3, 4};
     private static final int[] HORAS_POSIBLES = {1, 2, 3, 4};
 
-    private final Random random = new Random();
+    // Catalogos de ejemplo coherentes entre si: cada nota referencia un alumno y un curso existentes.
+    public record DatosGenerados(List<Alumno> alumnos, List<Curso> cursos, List<NotaCurso> notas) {
+    }
 
-    // Crea cursos.csv, alumnos.csv y notas.txt pseudoaleatorios pero coherentes entre si.
-    public void generarEjemplos(Path alumnosPath, Path cursosPath, Path notasPath,
-                                 int cantidadAlumnos, int cantidadCursos) throws IOException {
+    private final Random random;
+
+    public GeneradorDatosService() {
+        this(new Random());
+    }
+
+    // Con una semilla fija los datos se repiten (util en las pruebas).
+    public GeneradorDatosService(Random random) {
+        this.random = random;
+    }
+
+    // Solo genera; quien llama decide donde guardarlo.
+    public DatosGenerados generarEjemplos(int cantidadAlumnos, int cantidadCursos) {
         List<Curso> cursos = generarCursos(cantidadCursos);
         List<Alumno> alumnos = generarAlumnos(cantidadAlumnos);
-
-        StringBuilder notasSb = new StringBuilder();
+        List<NotaCurso> notas = new ArrayList<>();
         for (Alumno alumno : alumnos) {
-            for (NotaCurso nota : generarNotasAleatorias(alumno.id(), cursos)) {
-                notasSb.append(nota.alumnoId()).append(';').append(nota.cursoId()).append(';')
-                       .append(String.format("%.1f", nota.nota()))
-                       .append(System.lineSeparator());
-            }
+            notas.addAll(generarNotasAleatorias(alumno.id(), cursos));
         }
-
-        guardarCursos(cursosPath, cursos);
-        guardarAlumnos(alumnosPath, alumnos);
-        Files.writeString(notasPath, notasSb.toString());
+        return new DatosGenerados(alumnos, cursos, notas);
     }
 
     // Entre 3 y 6 notas pseudoaleatorias para un alumno, sin repetir curso (un alumno no puede
@@ -127,24 +126,6 @@ public class GeneradorArchivosService {
         return base + " " + sufijo;
     }
 
-    private void guardarCursos(Path path, List<Curso> cursos) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        for (Curso c : cursos) {
-            sb.append(c.id()).append(';').append(c.nombre()).append(';')
-              .append(c.creditos()).append("_creditos").append(';')
-              .append(c.horasSemanales()).append("_horas").append(System.lineSeparator());
-        }
-        Files.writeString(path, sb.toString());
-    }
-
-    private void guardarAlumnos(Path path, List<Alumno> alumnos) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        for (Alumno a : alumnos) {
-            sb.append(a.id()).append(';').append(a.nombreCompleto()).append(System.lineSeparator());
-        }
-        Files.writeString(path, sb.toString());
-    }
-
     private String nombreAleatorio() {
         String nombre = NOMBRES.get(random.nextInt(NOMBRES.size()));
         String apellido = APELLIDOS.get(random.nextInt(APELLIDOS.size()));
@@ -155,28 +136,5 @@ public class GeneradorArchivosService {
     private double notaAleatoria() {
         double nota = 2.0 + random.nextDouble() * 3.0;
         return Math.round(nota * 10.0) / 10.0;
-    }
-
-    // Formato de salida por linea: N_Puesto;ID;NombreCompleto;X.X_Prom;SI_Beca|NO_Beca;
-    // SI_Honor|NO_Honor;M_HorasSemanales  ej: 1_Puesto;A1;Carlos Perez;4.6_Prom;SI_Beca;SI_Honor;5_HorasSemanales
-    public void exportar(Path salidaPath, List<PromedioAlumno> ranking,
-                          Map<String, Integer> horasPorAlumno) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        int puesto = 0;
-        for (PromedioAlumno p : ranking) {
-            puesto++;
-            String beca = p.getPromedio() >= PromedioService.UMBRAL_BECA ? "SI_Beca" : "NO_Beca";
-            String honor = p.getPromedio() >= PromedioService.UMBRAL_HONOR ? "SI_Honor" : "NO_Honor";
-            int horas = horasPorAlumno.getOrDefault(p.getId(), 0);
-            sb.append(puesto).append("_Puesto").append(';')
-              .append(p.getId()).append(';')
-              .append(p.getNombreCompleto()).append(';')
-              .append(String.format("%.1f", p.getPromedio())).append("_Prom").append(';')
-              .append(beca).append(';')
-              .append(honor).append(';')
-              .append(horas).append("_HorasSemanales")
-              .append(System.lineSeparator());
-        }
-        Files.writeString(salidaPath, sb.toString());
     }
 }

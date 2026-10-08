@@ -3,12 +3,24 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Launch GUI",
+            "request": "launch",
+            "mainClass": "com.notas.AppGUI",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "java",
             "name": "Launch App",
             "request": "launch",
             "mainClass": "com.notas.App",
             "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "Run Pruebas",
+            "request": "launch",
+            "mainClass": "com.notas.Pruebas",
+            "console": "integratedTerminal"
         }
     ]
 }
-
-

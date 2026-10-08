@@ -11,7 +11,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class PromedioService {
 
@@ -20,6 +19,15 @@ public class PromedioService {
 
     // Nota minima (escala 0.0 - 5.0) para aplicar a beca.
     public static final double UMBRAL_BECA = 4.0;
+
+    // Nota minima para aprobar un curso. Solo informativa: no cambia beca ni cuadro de honor.
+    public static final double NOTA_APROBATORIA = 3.0;
+
+    // Mayor promedio primero; en empate, quien curso mas creditos y luego por nombre.
+    private static final Comparator<PromedioAlumno> ORDEN_RANKING =
+        Comparator.comparingDouble(PromedioAlumno::getPromedio).reversed()
+            .thenComparing(Comparator.comparingInt(PromedioAlumno::getSumaCreditos).reversed())
+            .thenComparing(PromedioAlumno::getNombreCompleto, String.CASE_INSENSITIVE_ORDER);
 
     // Cruza notas con alumnos y cursos por ID. Una referencia rota no detiene el calculo,
     // solo queda como advertencia.
@@ -46,18 +54,35 @@ public class PromedioService {
             promedio.agregarNota(nota.nota(), curso.creditos());
         }
 
-        List<PromedioAlumno> ranking = acumulado.values().stream()
-            .sorted(Comparator.comparingDouble(PromedioAlumno::getPromedio).reversed())
-            .collect(Collectors.toList());
-
+        List<PromedioAlumno> ranking = new ArrayList<>(acumulado.values());
+        ranking.sort(ORDEN_RANKING);
+        asignarPuestos(ranking);
         return new ResultadoCarga<>(ranking, advertencias);
     }
 
-    public boolean esCuadroDeHonor(PromedioAlumno promedio) {
-        return promedio.getPromedio() >= UMBRAL_HONOR;
+    // Ranking de competencia: con el mismo promedio comparten puesto y el siguiente salta (1, 2, 2, 4).
+    private void asignarPuestos(List<PromedioAlumno> ranking) {
+        for (int i = 0; i < ranking.size(); i++) {
+            PromedioAlumno actual = ranking.get(i);
+            boolean empataConAnterior = i > 0 && actual.getPromedio() == ranking.get(i - 1).getPromedio();
+            actual.setPuesto(empataConAnterior ? ranking.get(i - 1).getPuesto() : i + 1);
+        }
     }
 
-    public boolean aplicaBeca(PromedioAlumno promedio) {
-        return promedio.getPromedio() >= UMBRAL_BECA;
+    public static boolean esCuadroDeHonor(double promedio) {
+        return promedio >= UMBRAL_HONOR;
+    }
+
+    public static boolean aplicaBeca(double promedio) {
+        return promedio >= UMBRAL_BECA;
+    }
+
+    public static boolean estaAprobada(double nota) {
+        return nota >= NOTA_APROBATORIA;
+    }
+
+    // Cuanto le falta al promedio para llegar al umbral (0 si ya lo alcanza).
+    public static double faltaPara(double umbral, double promedio) {
+        return Math.max(0.0, Math.round((umbral - promedio) * 100.0) / 100.0);
     }
 }

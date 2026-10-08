@@ -1,0 +1,9 @@
+# Compilados (VSCode los regenera en bin/)
+bin/
+*.class
+
+# macOS
+.DS_Store
+
+# Salida generada por el programa
+data/promedios.csv

@@ -8,7 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,6 +28,7 @@ public class NotaRepository {
     public ResultadoCarga<NotaCurso> cargar() throws IOException {
         List<NotaCurso> notas = new ArrayList<>();
         List<String> errores = new ArrayList<>();
+        Set<String> paresVistos = new HashSet<>();
         if (!Files.exists(rutaArchivo)) return new ResultadoCarga<>(notas, errores);
 
         int numeroLinea = 0;
@@ -44,17 +48,22 @@ public class NotaRepository {
                 errores.add("notas.txt linea " + numeroLinea + ": nota fuera de rango (" + nota + ") en \"" + linea + "\"");
                 continue;
             }
+            // Un alumno no puede tener dos notas en el mismo curso: cuenta solo la primera.
+            if (!paresVistos.add(alumnoId + ";" + cursoId)) {
+                errores.add("notas.txt linea " + numeroLinea + ": " + alumnoId + " ya tiene nota en " + cursoId + ", se ignora");
+                continue;
+            }
             notas.add(new NotaCurso(alumnoId, cursoId, nota));
         }
         return new ResultadoCarga<>(notas, errores);
     }
 
-    // Reescribe el archivo completo (usado por el CRUD).
+    // Reescribe el archivo completo (usado por el CRUD). Locale.ROOT: siempre punto decimal.
     public void guardarTodos(Collection<NotaCurso> notas) throws IOException {
         StringBuilder sb = new StringBuilder();
         for (NotaCurso n : notas) {
             sb.append(n.alumnoId()).append(';').append(n.cursoId()).append(';')
-              .append(String.format("%.1f", n.nota())).append(System.lineSeparator());
+              .append(String.format(Locale.ROOT, "%.1f", n.nota())).append(System.lineSeparator());
         }
         Files.writeString(rutaArchivo, sb.toString());
     }

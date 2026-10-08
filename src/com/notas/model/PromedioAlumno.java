@@ -6,6 +6,7 @@ public class PromedioAlumno {
     private final String nombreCompleto;
     private double sumaPonderada;
     private int sumaCreditos;
+    private int puesto;
 
     public PromedioAlumno(String id, String nombreCompleto) {
         this.id = id;
@@ -17,9 +18,12 @@ public class PromedioAlumno {
         this.sumaCreditos += creditos;
     }
 
-    // Promedio ponderado = suma(nota * creditos) / suma(creditos). 0 si aun no tiene notas.
+    // Promedio oficial = suma(nota * creditos) / suma(creditos), redondeado a 2 decimales.
+    // Es el valor que se muestra, se exporta y con el que se deciden beca, honor y empates,
+    // para que nunca se contradigan. 0 si aun no tiene notas.
     public double getPromedio() {
-        return sumaCreditos == 0 ? 0.0 : sumaPonderada / sumaCreditos;
+        if (sumaCreditos == 0) return 0.0;
+        return Math.round(sumaPonderada / sumaCreditos * 100.0) / 100.0;
     }
 
     public String getId() {
@@ -32,5 +36,14 @@ public class PromedioAlumno {
 
     public int getSumaCreditos() {
         return sumaCreditos;
+    }
+
+    // Lo asigna PromedioService al ordenar el ranking; empates comparten puesto.
+    public int getPuesto() {
+        return puesto;
+    }
+
+    public void setPuesto(int puesto) {
+        this.puesto = puesto;
     }
 }
