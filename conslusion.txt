@@ -1,0 +1,60 @@
+REFLEXIÓN FINAL DEL PROYECTO
+============================================================
+
+
+1. Lo aprendido durante el desarrollo del proyecto
+------------------------------------------------------------
+
+Durante el proyecto aplicamos los conceptos teóricos vistos en el
+módulo a un problema de la vida real, como lo es la gestión de notas
+de estudiantes, y le dimos una solución funcional.
+
+Aprendimos a darle una arquitectura al algoritmo antes de programarlo.
+Hicimos un modelado lógico de las entidades y sus relaciones para
+asegurar que el sistema funcionara correctamente desde el diseño.
+
+La solución se implementó en Java, separando la lógica de negocio de
+la interfaz de usuario. Esto nos permitió entender cómo funciona el
+cálculo del promedio ponderado por créditos de forma independiente a
+la forma en que el usuario interactúa con el sistema.
+
+También aprendimos técnicas de persistencia basadas en archivos de
+texto plano, con las que implementamos operaciones completas de CRUD
+(Creación, Consulta, Edición y Eliminación) sobre Alumnos, Cursos y
+Notas.
+
+
+2. Posibles aplicaciones en la vida profesional
+------------------------------------------------------------
+
+Las destrezas adquiridas nos dan la capacidad de tomar decisiones
+apoyadas en datos cuantitativos, algo útil en cualquier proyecto o
+industria.
+
+Además, adquirimos el conocimiento necesario para identificar los
+puntos críticos de un sistema y garantizar que se pueda modificar sin
+afectar su funcionamiento general.
+
+Por último, podemos aplicar metodologías de pruebas de requerimientos
+y de aseguramiento de calidad (QA) para detectar y corregir defectos
+antes de desplegar un sistema.
+
+
+3. Dificultades presentadas durante el desarrollo del proyecto
+------------------------------------------------------------
+
+La principal dificultad fue manejar las validaciones entre dos
+interfaces independientes, la consola y Swing, sin duplicar lógica de
+código.
+
+También fue un reto identificar los posibles errores a medida que se
+iba construyendo el sistema, ya que algunos solo aparecían al
+integrar los distintos componentes.
+
+Tuvimos que realizar pruebas con carpetas de datos vacías para
+asegurar que el sistema funcionara bien desde el primer uso, sin
+depender de información previamente cargada.
+
+Finalmente, nos costó traducir las restricciones del entorno
+operativo a reglas y ecuaciones matemáticas precisas dentro del
+código.
